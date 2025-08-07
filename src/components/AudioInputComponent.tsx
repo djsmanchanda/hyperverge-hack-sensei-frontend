@@ -203,8 +203,8 @@ export const AudioInputComponent: React.FC<AudioInputComponentProps> = ({
     };
 
     return (
-        <div className={`bg-white rounded-lg shadow-md p-6 ${className}`}>
-            <h3 className="text-lg font-semibold mb-4">Record Your Response</h3>
+        <div className={`bg-[#1F1F1F] rounded-lg shadow-md p-6 ${className}`}>
+            <h3 className="text-lg font-semibold mb-4 text-white">Record Your Response</h3>
             
             {/* Recording Controls */}
             <div className="flex flex-col items-center space-y-4">
@@ -230,7 +230,7 @@ export const AudioInputComponent: React.FC<AudioInputComponentProps> = ({
                         )}
                         
                         <div className="text-center">
-                            <div className="text-sm text-gray-600">or</div>
+                            <div className="text-sm text-gray-300">or</div>
                             <input
                                 ref={fileInputRef}
                                 type="file"
@@ -241,7 +241,7 @@ export const AudioInputComponent: React.FC<AudioInputComponentProps> = ({
                             <button
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={isSubmitting || isRecording}
-                                className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                                className="flex items-center space-x-2 px-4 py-2 border border-gray-600 text-gray-200 rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
                             >
                                 <Upload className="h-4 w-4" />
                                 <span>Upload Audio</span>
@@ -252,14 +252,14 @@ export const AudioInputComponent: React.FC<AudioInputComponentProps> = ({
 
                 {/* Recording Timer */}
                 {isRecording && (
-                    <div className="text-center">
-                        <div className="text-2xl font-mono text-red-600 mb-2">
+                        <div className="text-center">
+                            <div className="text-2xl font-mono text-red-600 mb-2">
                             {formatTime(recordingTime)}
                         </div>
-                        <div className="text-sm text-gray-600">
+                            <div className="text-sm text-gray-400">
                             Max: {formatTime(maxDuration)}
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                            <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
                             <div
                                 className="bg-red-600 h-2 rounded-full transition-all duration-1000"
                                 style={{ width: `${(recordingTime / maxDuration) * 100}%` }}
@@ -284,10 +284,10 @@ export const AudioInputComponent: React.FC<AudioInputComponentProps> = ({
                             </button>
                             
                             <div className="flex-1">
-                                <div className="text-sm text-gray-600 mb-1">
+                                <div className="text-sm text-gray-400 mb-1">
                                     {formatTime(currentTime)} / {formatTime(duration || recordingTime)}
                                 </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div className="w-full bg-gray-700 rounded-full h-2">
                                     <div
                                         className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                                         style={{ 
@@ -302,7 +302,7 @@ export const AudioInputComponent: React.FC<AudioInputComponentProps> = ({
                             <button
                                 onClick={handleReset}
                                 disabled={isSubmitting}
-                                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                                className="flex-1 px-4 py-2 border border-gray-600 text-gray-200 rounded-lg hover:bg-[#2A2A2A] transition-colors disabled:opacity-50"
                             >
                                 Record Again
                             </button>
@@ -330,13 +330,13 @@ export const AudioInputComponent: React.FC<AudioInputComponentProps> = ({
 
                         {showDeleteConfirmation && (
                             <div className="flex flex-col items-center space-y-2">
-                                <p className="text-sm text-gray-600">
+                                <p className="text-sm text-gray-300">
                                     Are you sure you want to delete this recording?
                                 </p>
                                 <div className="flex space-x-2">
                                     <button
                                         onClick={cancelDelete}
-                                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                        className="px-4 py-2 border border-gray-600 text-gray-200 rounded-lg hover:bg-[#2A2A2A] transition-colors"
                                     >
                                         Cancel
                                     </button>
