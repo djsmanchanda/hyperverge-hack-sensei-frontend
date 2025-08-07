@@ -12,6 +12,7 @@ import { getKnowledgeBaseContent } from './QuizEditor';
 import { CodePreview } from './CodeEditorView';
 import isEqual from 'lodash/isEqual';
 import { safeLocalStorage } from "@/lib/utils/localStorage";
+import InterviewMode from './InterviewMode';
 
 // Add interface for mobile view mode
 export interface MobileViewMode {
@@ -1618,6 +1619,16 @@ export default function LearnerQuizView({
         }
     }, [isAdminView, questions, currentQuestionId]);
 
+    // Add interview mode to existing LearnerQuizView
+    const [isInterviewMode, setIsInterviewMode] = useState(false);
+
+    // Add this method to detect interview questions
+    const isInterviewQuestion = (question: any) => {
+        return question?.config?.responseType === 'interview' || 
+               question?.config?.inputType === 'audio' && 
+               question?.config?.enableTranscription === true;
+    };
+
     return (
         <div className={`w-full h-full ${className}`}>
             {/* Add the custom styles */}
@@ -1954,6 +1965,16 @@ export default function LearnerQuizView({
                             handleBackToChat={handleBackToChat}
                             lastUserMessage={getLastUserMessage as ChatMessage | null}
                         />
+                    ) : isInterviewQuestion(validQuestions[currentQuestionIndex]) ? (
+                        /* Render interview mode component */
+                        <InterviewMode
+                            question={validQuestions[currentQuestionIndex]?.content || ''}
+                            maxDuration={validQuestions[currentQuestionIndex]?.config?.audioMaxDuration || 60}
+                            onComplete={(evaluation) => {
+                                // Handle completion - store results, move to next question, etc.
+                                console.log('Interview evaluation:', evaluation);
+                            }}
+                        />
                     ) : (
                         /* Use the ChatView component */
                         <ChatView
@@ -2110,4 +2131,4 @@ export default function LearnerQuizView({
             )}
         </div>
     );
-} 
+}
