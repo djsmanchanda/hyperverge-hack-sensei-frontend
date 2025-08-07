@@ -831,7 +831,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
         try {
             // Use the reusable function to create scorecard
             const createdScorecard = await createScorecard(newScorecardTitle, [
-                { name: '', description: '', minScore: 1, maxScore: 5, passScore: 3 }
+                { name: '', description: '', minScore: 1, maxScore: 10, passScore: 6 }
             ]);
 
             // Create scorecard data using the backend ID
@@ -841,7 +841,7 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
                 new: true, // Mark as newly created in this session
                 is_template: false, // Not a template
                 criteria: [
-                    { name: '', description: '', minScore: 1, maxScore: 5, passScore: 3 }
+                    { name: '', description: '', minScore: 1, maxScore: 10, passScore: 6 }
                 ]
             };
 
@@ -2118,13 +2118,29 @@ const QuizEditor = forwardRef<QuizEditorHandle, QuizEditorProps>(({
     const handleQuestionTitleInput = useCallback((e: React.FormEvent<HTMLSpanElement>) => {
         const el = e.currentTarget;
         if (el.textContent && el.textContent.length > 200) {
+            // Save the current cursor position before truncating
+            const selection = window.getSelection();
+            const cursorPosition = selection?.focusOffset || 0;
+            
+            // Truncate the text
             el.textContent = el.textContent.slice(0, 200);
-            const range = document.createRange();
-            const sel = window.getSelection();
-            range.selectNodeContents(el);
-            range.collapse(false);
-            sel?.removeAllRanges();
-            sel?.addRange(range);
+            
+            // Only restore cursor position if it's within the new bounds
+            if (cursorPosition <= 200) {
+                try {
+                    const range = document.createRange();
+                    const textNode = el.firstChild;
+                    if (textNode) {
+                        range.setStart(textNode, Math.min(cursorPosition, el.textContent.length));
+                        range.setEnd(textNode, Math.min(cursorPosition, el.textContent.length));
+                        selection?.removeAllRanges();
+                        selection?.addRange(range);
+                    }
+                } catch (error) {
+                    // Fallback: don't manipulate cursor if there's an error
+                    console.warn('Could not restore cursor position:', error);
+                }
+            }
         }
     }, []);
 

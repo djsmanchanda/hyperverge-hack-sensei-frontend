@@ -12,6 +12,7 @@ import { getKnowledgeBaseContent } from './QuizEditor';
 import { CodePreview } from './CodeEditorView';
 import isEqual from 'lodash/isEqual';
 import { safeLocalStorage } from "@/lib/utils/localStorage";
+import InterviewMode from './InterviewMode';
 
 // Add interface for mobile view mode
 export interface MobileViewMode {
@@ -917,6 +918,10 @@ export default function LearnerQuizView({
             }
 
             // Call the API with the appropriate request body for streaming response
+            try {
+                console.debug('[AI CHAT] Request body', requestBody);
+            } catch (_) {}
+
             fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/ai/chat`, {
                 method: 'POST',
                 headers: {
@@ -926,7 +931,16 @@ export default function LearnerQuizView({
             })
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Network response was not ok');
+                        // Attempt to read error payload for debugging
+                        return response.text().then(text => {
+                            try {
+                                const json = JSON.parse(text);
+                                console.error('[AI CHAT] Non-OK response', response.status, json);
+                            } catch {
+                                console.error('[AI CHAT] Non-OK response', response.status, text);
+                            }
+                            throw new Error(`AI chat request failed with status ${response.status}`);
+                        });
                     }
 
                     // Get the response reader for streaming for both exam and quiz
@@ -1618,6 +1632,16 @@ export default function LearnerQuizView({
         }
     }, [isAdminView, questions, currentQuestionId]);
 
+    // Add interview mode to existing LearnerQuizView
+    const [isInterviewMode, setIsInterviewMode] = useState(false);
+
+    // Add this method to detect interview questions
+    const isInterviewQuestion = (question: any) => {
+        return question?.config?.responseType === 'interview' || 
+               question?.config?.inputType === 'audio' && 
+               question?.config?.enableTranscription === true;
+    };
+
     return (
         <div className={`w-full h-full ${className}`}>
             {/* Add the custom styles */}
@@ -1954,6 +1978,16 @@ export default function LearnerQuizView({
                             handleBackToChat={handleBackToChat}
                             lastUserMessage={getLastUserMessage as ChatMessage | null}
                         />
+                    ) : isInterviewQuestion(validQuestions[currentQuestionIndex]) ? (
+                        /* Render interview mode component */
+                        <InterviewMode
+                            question={validQuestions[currentQuestionIndex]?.content || ''}
+                            maxDuration={validQuestions[currentQuestionIndex]?.config?.audioMaxDuration || 60}
+                            onComplete={(evaluation) => {
+                                // Handle completion - store results, move to next question, etc.
+                                console.log('Interview evaluation:', evaluation);
+                            }}
+                        />
                     ) : (
                         /* Use the ChatView component */
                         <ChatView
@@ -2110,4 +2144,4 @@ export default function LearnerQuizView({
             )}
         </div>
     );
-} 
+}
