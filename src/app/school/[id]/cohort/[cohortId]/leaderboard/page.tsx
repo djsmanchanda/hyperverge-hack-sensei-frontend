@@ -29,13 +29,14 @@ async function getCohortName(cohortId: string) {
 export default async function LeaderboardPage({
     params,
 }: {
-    params: { id: string; cohortId: string };
+    params: Promise<{ id: string; cohortId: string }>;
 }) {
+    const resolvedParams = await params;
     // Fetch the cohort name on the server
-    const cohortName = await getCohortName(params.cohortId);
+    const cohortName = await getCohortName(resolvedParams.cohortId);
 
     return <ClientLeaderboardView
-        cohortId={params.cohortId}
+        cohortId={resolvedParams.cohortId}
         cohortName={cohortName}
         view='learner'
     />;

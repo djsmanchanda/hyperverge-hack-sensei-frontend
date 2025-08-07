@@ -15,7 +15,13 @@ export const getPublishedCourseModules = async (courseId: string): Promise<{
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch course data: ${response.status}`);
+    if (response.status === 404) {
+      throw new Error(`Course with ID ${courseId} not found. Please check if the course exists.`);
+    } else if (response.status === 500) {
+      throw new Error(`Server error when fetching course ${courseId}. Course may not exist or there's a backend issue.`);
+    } else {
+      throw new Error(`Failed to fetch course data: ${response.status}`);
+    }
   }
 
   const courseData = await response.json();

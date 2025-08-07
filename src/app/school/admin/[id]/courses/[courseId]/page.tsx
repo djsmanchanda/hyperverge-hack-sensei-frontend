@@ -32,6 +32,7 @@ interface CourseDetails {
 
 // Default configuration for new questions
 const defaultQuestionConfig: QuizQuestionConfig = {
+    title: '',
     inputType: 'text',
     responseType: 'chat',
     questionType: 'objective',
@@ -1538,11 +1539,20 @@ export default function CreateCourse() {
 
             wsRef.current.onerror = (error) => {
                 console.error('WebSocket error:', error);
-                setGenerationProgress(prev => [...prev, "There was an error generating your course. Please try again."]);
+                // Don't immediately stop generation - let it try to continue
+                // setGenerationProgress(prev => [...prev, "WebSocket connection error. The AI generation service may not be available."]);
+                // setIsGeneratingCourse(false);
             };
 
-            wsRef.current.onclose = () => {
-                console.log('WebSocket connection closed');
+            wsRef.current.onclose = (event) => {
+                console.log('WebSocket connection closed', event.code, event.reason);
+                
+                // Only stop generation if this is a definitive failure and we're early in the process
+                if ((event.code === 1006 || event.code === 1002) && generatedTasksCountRef.current === 0) {
+                    setGenerationProgress(prev => [...prev, "AI generation service unavailable. WebSocket endpoint not found."]);
+                    setIsGeneratingCourse(false);
+                    return;
+                }
 
                 // Clear heartbeat interval
                 if (heartbeatIntervalRef.current) {
@@ -1604,92 +1614,43 @@ export default function CreateCourse() {
                 heartbeatIntervalRef.current = null;
             }
 
-            // For now, we'll just log the data
-            // In a real implementation, this would be an API call to start the generation process
-            let presigned_url = '';
+            // For local development, upload directly to backend
             let file_key = '';
 
             setGenerationProgress(["Uploading reference material"]);
 
+            // Upload directly to the backend (local development setup)
             try {
-                // First, get a presigned URL for the file
-                const presignedUrlResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/file/presigned-url/create`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        content_type: 'application/pdf'
-                    })
+                console.log("Uploading file to local backend");
+
+                // Create FormData for the file upload
+                const formData = new FormData();
+                formData.append('file', data.referencePdf, 'reference_material.pdf');
+                formData.append('content_type', 'application/pdf');
+
+                // Upload directly to the backend
+                const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/file/upload-local`, {
+                    method: 'POST',
+                    body: formData
                 });
 
-                if (!presignedUrlResponse.ok) {
-                    throw new Error('Failed to get presigned URL');
+                if (!uploadResponse.ok) {
+                    throw new Error(`Failed to upload file to backend: ${uploadResponse.status}`);
                 }
 
-                const presignedData = await presignedUrlResponse.json();
+                const uploadData = await uploadResponse.json();
+                file_key = uploadData.file_key || uploadData.static_url;
 
-                console.log('Presigned url generated');
-                presigned_url = presignedData.presigned_url;
-                file_key = presignedData.file_key;
-
+                console.log('Reference material uploaded successfully to backend:', file_key);
             } catch (error) {
-                console.error("Error getting presigned URL for file:", error);
-            }
-
-            if (!presigned_url) {
-                // If we couldn't get a presigned URL, try direct upload to the backend
-                try {
-                    console.log("Attempting direct upload to backend");
-
-                    // Create FormData for the file upload
-                    const formData = new FormData();
-                    formData.append('file', data.referencePdf, 'reference_material.pdf');
-                    formData.append('content_type', 'application/pdf');
-
-                    // Upload directly to the backend
-                    const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/file/upload-local`, {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    if (!uploadResponse.ok) {
-                        throw new Error(`Failed to upload audio to backend: ${uploadResponse.status}`);
-                    }
-
-                    const uploadData = await uploadResponse.json();
-                    file_key = uploadData.file_key;
-
-                    console.log('Reference material uploaded successfully to backend');
-                } catch (error) {
-                    console.error('Error with direct upload to backend:', error);
-                    throw error;
-                }
-            } else {
-
-                // Upload the file to S3 using the presigned URL
-                try {
-                    // Use data.referencePdf instead of undefined 'file' variable
-                    const pdfFile = data.referencePdf;
-
-                    // Upload to S3 using the presigned URL
-                    const uploadResponse = await fetch(presigned_url, {
-                        method: 'PUT',
-                        body: pdfFile, // Use the file directly, no need to create a Blob
-                        headers: {
-                            'Content-Type': 'application/pdf'
-                        }
-                    });
-
-                    if (!uploadResponse.ok) {
-                        throw new Error(`Failed to upload file to S3: ${uploadResponse.status}`);
-                    }
-
-                    console.log('File uploaded successfully to S3');
-                } catch (error) {
-                    console.error('Error uploading file to S3:', error);
-                    throw error;
-                }
+                console.error('Error uploading file to backend:', error);
+                // Show user-friendly error message
+                setGenerationProgress([
+                    "Error uploading reference material", 
+                    "Please check if the backend is running and try again"
+                ]);
+                setIsGeneratingCourse(false);
+                return; // Exit the function gracefully instead of throwing
             }
 
             setGenerationProgress(["Uploaded reference material", 'Generating course plan']);
@@ -1726,7 +1687,14 @@ export default function CreateCourse() {
                         wsRef.current.close();
                         wsRef.current = null;
                     }
-                    throw new Error(`Failed to generate course: ${response.status}`);
+                    
+                    if (response.status === 500) {
+                        throw new Error(`AI generation service error (500). The backend may be missing API keys or AI service configuration.`);
+                    } else if (response.status === 404) {
+                        throw new Error(`AI generation endpoint not found (404). This feature may not be implemented in the backend.`);
+                    } else {
+                        throw new Error(`Failed to generate course: ${response.status}`);
+                    }
                 }
 
                 const result = await response.json();
@@ -1760,8 +1728,9 @@ export default function CreateCourse() {
                 heartbeatIntervalRef.current = null;
             }
 
-            // Add error message to progress
-            setGenerationProgress(prev => [...prev, "There was an error generating your course. Please try again."]);
+            // Add specific error message to progress
+            const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+            setGenerationProgress(prev => [...prev, `Error: ${errorMessage}`]);
 
             // Reset generating state after delay
             setTimeout(() => {

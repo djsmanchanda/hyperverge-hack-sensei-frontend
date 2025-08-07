@@ -6,15 +6,16 @@ import { getPublishedCourseModules } from '@/lib/server-api';
 
 
 export async function generateMetadata(
-    { params }: { params: { id: string, cohortId: string, courseId: string, learnerId: string } }
+    { params }: { params: Promise<{ id: string, cohortId: string, courseId: string, learnerId: string }> }
 ): Promise<Metadata> {
+    const resolvedParams = await params;
     try {
         // Fetch course and learner data
         const [courseResponse, learnerResponse] = await Promise.all([
-            fetch(`${process.env.BACKEND_URL}/courses/${params.courseId}`, {
+            fetch(`${process.env.BACKEND_URL}/courses/${resolvedParams.courseId}`, {
                 cache: 'no-store'
             }),
-            fetch(`${process.env.BACKEND_URL}/users/${params.learnerId}`, {
+            fetch(`${process.env.BACKEND_URL}/users/${resolvedParams.learnerId}`, {
                 cache: 'no-store'
             })
         ]);
@@ -30,8 +31,8 @@ export async function generateMetadata(
         const learner = await learnerResponse.json();
 
         return {
-            title: `Viewing ${course.name} as ${learner.email || `Learner #${params.learnerId}`}`,
-            description: `Admin view of course "${course.name}" as experienced by ${learner.email || `Learner #${params.learnerId}`}`
+            title: `Viewing ${course.name} as ${learner.email || `Learner #${resolvedParams.learnerId}`}`,
+            description: `Admin view of course "${course.name}" as experienced by ${learner.email || `Learner #${resolvedParams.learnerId}`}`
         };
     } catch (error) {
         return {
@@ -45,11 +46,13 @@ export default async function AdminLearnerViewPage({
     params,
     searchParams
 }: {
-    params: { id: string, courseId: string, learnerId: string }
-    searchParams: { cohortId: string }
+    params: Promise<{ id: string, courseId: string, learnerId: string }>
+    searchParams: Promise<{ cohortId: string }>
 }) {
-    const { id: schoolId, courseId, learnerId } = params;
-    const { cohortId } = searchParams || {};
+    const resolvedParams = await params;
+    const resolvedSearchParams = await searchParams;
+    const { id: schoolId, courseId, learnerId } = resolvedParams;
+    const { cohortId } = resolvedSearchParams || {};
 
     try {
         // Use the new getPublishedCourseModules function to fetch and transform course data

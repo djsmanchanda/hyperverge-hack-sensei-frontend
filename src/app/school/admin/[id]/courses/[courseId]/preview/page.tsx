@@ -5,10 +5,11 @@ import ClientPreviewWrapper from './ClientPreviewWrapper';
 import { getPublishedCourseModules } from '@/lib/server-api';
 
 export async function generateMetadata(
-    { params }: { params: { id: string, courseId: string } }
+    { params }: { params: Promise<{ id: string, courseId: string }> }
 ): Promise<Metadata> {
+    const resolvedParams = await params;
     try {
-        const courseResponse = await fetch(`${process.env.BACKEND_URL}/courses/${params.courseId}`, {
+        const courseResponse = await fetch(`${process.env.BACKEND_URL}/courses/${resolvedParams.courseId}`, {
             cache: 'no-store'
         });
 
@@ -33,9 +34,10 @@ export async function generateMetadata(
     }
 }
 
-export default async function PreviewPage({ params }: { params: { id: string, courseId: string } }) {
-    const orgId = params.id;
-    const courseId = params.courseId;
+export default async function PreviewPage({ params }: { params: Promise<{ id: string, courseId: string }> }) {
+    const resolvedParams = await params;
+    const orgId = resolvedParams.id;
+    const courseId = resolvedParams.courseId;
 
     try {
         // Use the new getPublishedCourseModules function to fetch and transform course data
