@@ -16,23 +16,32 @@ export const authOptions = {
     signIn: "/login",
   },
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account }: { token: JWT; user?: User; account?: Account | null }) {
       // If signing in for the first time, save user info in token
       if (account && user) {
         token.accessToken = account.access_token;
         token.idToken = account.id_token;
+        
+        console.log('JWT callback - new sign in:', {
+          provider: account.provider,
+          hasIdToken: !!account.id_token,
+          userEmail: user.email
+        });
         
         // If this is a Google signin, get userId from backend
         if (account.provider === 'google') {
           try {
             const result = await registerUserWithBackend(user, account);
             
+            console.log('Backend auth result:', result);
+            
             // Extract the ID from the result
             if (result && result.id) {
               // Store the backend userId directly in the token
               token.userId = result.id;
+              console.log('Stored userId in token:', result.id);
             } else {
-              console.error("Backend response missing ID field");
+              console.error("Backend response missing ID field:", result);
             }
           } catch (error) {
             console.error("Error storing backend user ID:", error);
@@ -43,7 +52,7 @@ export const authOptions = {
       return token;
     },
     
-    async session({ session, token }) {      
+    async session({ session, token }: { session: Session; token: JWT }) {      
       // Send properties to the client
       if (session.user) {
         // Use the backend user ID directly as the main ID
@@ -62,7 +71,7 @@ export const authOptions = {
       return session;
     },
     
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account, profile }: { user: User; account: Account | null; profile?: Profile }) {
       if (!account || !profile) return true;
       
       try {

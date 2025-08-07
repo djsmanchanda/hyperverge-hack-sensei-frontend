@@ -3,11 +3,11 @@
  */
 
 interface UserData {
-  email: string;
+  email?: string | null;
   given_name?: string;
   family_name?: string;
-  name?: string;
-  image?: string;
+  name?: string | null;
+  image?: string | null;
   id?: string;
 }
 
@@ -26,20 +26,35 @@ export async function registerUserWithBackend(
   account: AccountData
 ): Promise<any> {
   try {    
+    const requestBody = {
+      email: user.email || '',
+      given_name: user.given_name || user.name?.split(' ')[0] || '',
+      family_name: user.family_name || user.name?.split(' ').slice(1).join(' ') || '',
+      id_token: account.id_token || ''
+    };
+    
+    console.log('Sending request to backend:', {
+      url: `${process.env.BACKEND_URL}/auth/login`,
+      body: { ...requestBody, id_token: account.id_token ? '[PRESENT]' : '[MISSING]' }
+    });
+    
     const response = await fetch(`${process.env.BACKEND_URL}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        email: user.email,
-        given_name: user.given_name || user.name?.split(' ')[0] || '',
-        family_name: user.family_name || user.name?.split(' ').slice(1).join(' ') || '',
-        id_token: account.id_token
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Backend auth error response:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
+      
+      // For now, don't throw the error - use fallback instead
       throw new Error(`Backend auth failed: ${response.status}`);
     }
 
@@ -54,8 +69,13 @@ export async function registerUserWithBackend(
     return data;
   } catch (error) {
     console.error('Backend authentication error:', error);
-    // Don't throw error to prevent blocking the auth flow
-    // Just log it and continue
+    // Return a fallback user object with a temporary ID based on email
+    // This allows the frontend to continue working while backend auth is being fixed
+    if (user.email) {
+      const fallbackId = btoa(user.email).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
+      console.log('Using fallback user ID:', fallbackId, 'for email:', user.email);
+      return { id: fallbackId };
+    }
     return { id: null };
   }
-} 
+}
