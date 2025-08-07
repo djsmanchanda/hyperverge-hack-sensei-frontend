@@ -50,20 +50,27 @@ export function useCourses() {
   // Fetch courses immediately when user ID is available
   useEffect(() => {
     if (!isAuthenticated || !user?.id || authLoading) {
+      console.log('useCourses: Not ready to fetch', { isAuthenticated, userId: user?.id, authLoading });
       return;
     }
     
+    console.log('useCourses: Fetching courses for user:', user.id);
     setIsLoading(true);
     
+    const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/${user.id}/courses`;
+    console.log('useCourses: Fetching from URL:', url);
+    
     // Simple fetch without caching
-    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/${user.id}/courses`)
+    fetch(url)
       .then(response => {
+        console.log('useCourses: Response status:', response.status);
         if (!response.ok) {
           throw new Error(`Request failed: ${response.status}`);
         }
         return response.json();
       })
       .then(data => {
+        console.log('useCourses: Received data:', data);
         // Transform the API response to match the expected format
         const formattedCourses: Course[] = data.map((course: any) => ({
           id: course.id,
@@ -80,7 +87,12 @@ export function useCourses() {
         setCourses(formattedCourses);
       })
       .catch(err => {
-        console.error('Error fetching courses:', err);
+        console.error('useCourses: Error fetching courses:', err);
+        console.error('useCourses: Error details:', {
+          message: err.message,
+          name: err.name,
+          stack: err.stack
+        });
         setError(err);
       })
       .finally(() => {
@@ -107,20 +119,27 @@ export function useSchools() {
   // Fetch schools immediately when user ID is available
   useEffect(() => {
     if (!isAuthenticated || !user?.id || authLoading) {
+      console.log('useSchools: Not ready to fetch', { isAuthenticated, userId: user?.id, authLoading });
       return;
     }
     
+    console.log('useSchools: Fetching schools for user:', user.id);
     setIsLoading(true);
     
+    const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/${user.id}/orgs`;
+    console.log('useSchools: Fetching from URL:', url);
+    
     // Simple fetch without caching
-    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users/${user.id}/orgs`)
+    fetch(url)
       .then(response => {
+        console.log('useSchools: Response status:', response.status);
         if (!response.ok) {
           throw new Error(`Request failed: ${response.status}`);
         }
         return response.json();
       })
       .then(data => {
+        console.log('useSchools: Received data:', data);
         // Transform the API response to match the expected format
         const formattedSchools: School[] = data.map((org: any) => ({
           id: org.id,
@@ -135,7 +154,12 @@ export function useSchools() {
         setSchools(formattedSchools);
       })
       .catch(err => {
-        console.error('Error fetching schools:', err);
+        console.error('useSchools: Error fetching schools:', err);
+        console.error('useSchools: Error details:', {
+          message: err.message,
+          name: err.name,
+          stack: err.stack
+        });
         setError(err);
       })
       .finally(() => {

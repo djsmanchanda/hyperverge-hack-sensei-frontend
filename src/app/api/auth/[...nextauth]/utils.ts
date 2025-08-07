@@ -72,7 +72,12 @@ export async function registerUserWithBackend(
     // Return a fallback user object with a temporary ID based on email
     // This allows the frontend to continue working while backend auth is being fixed
     if (user.email) {
-      const fallbackId = btoa(user.email).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
+      // Generate a simple integer ID from email hash for testing
+      // In production, this should be replaced with proper backend authentication
+      const emailHash = user.email.split('').reduce((hash, char) => {
+        return ((hash << 5) - hash) + char.charCodeAt(0);
+      }, 0);
+      const fallbackId = Math.abs(emailHash % 1000000); // Keep it reasonable for testing
       console.log('Using fallback user ID:', fallbackId, 'for email:', user.email);
       return { id: fallbackId };
     }
