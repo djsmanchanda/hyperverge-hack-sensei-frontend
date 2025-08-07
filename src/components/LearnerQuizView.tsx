@@ -13,6 +13,8 @@ import { CodePreview } from './CodeEditorView';
 import isEqual from 'lodash/isEqual';
 import { safeLocalStorage } from "@/lib/utils/localStorage";
 import InterviewMode from './InterviewMode';
+import ProbingQuestion from './ProbingQuestions';
+import UnderstandingCertification from './UnderstandingCertifications';
 
 // Add interface for mobile view mode
 export interface MobileViewMode {
@@ -625,7 +627,7 @@ export default function LearnerQuizView({
             }
         ];
 
-        const isComplete = currentQuestion?.config?.responseType === 'exam' ? true : !userIsSolved && aiIsSolved;
+        const isComplete = currentQuestion?.config?.responseType === 'exam' ? true : !userIsSolved && aiIsolved;
 
         const requestBody = {
             user_id: parseInt(userId),
@@ -656,7 +658,8 @@ export default function LearnerQuizView({
         async (
             responseContent: string,
             responseType: 'text' | 'audio' | 'code' = 'text',
-            audioData?: string
+            audioData?: string,
+            sessionUuid?: string | null
         ) => {
             if (!validQuestions || validQuestions.length === 0 || currentQuestionIndex >= validQuestions.length) {
                 return;
@@ -1629,6 +1632,81 @@ export default function LearnerQuizView({
                question?.config?.enableTranscription === true;
     };
 
+    // Probing state
+    const [probingActive, setProbingActive] = useState(false);
+    const [currentProbingQuestion, setCurrentProbingQuestion] = useState<any>(null);
+    const [probingSessionUuid, setProbingSessionUuid] = useState<string | null>(null);
+    const [showCertification, setShowCertification] = useState(false);
+    const [certificationData, setCertificationData] = useState<any>(null);
+
+    // In your streaming response handler, add:
+    useEffect(() => {
+        // Check for new messages in the current chat history
+        const currentHistory = chatHistories[currentQuestionId] || [];
+
+        // Find the last AI message in the current history
+        const lastAiMessage = currentHistory.filter(msg => msg.sender === 'ai').pop();
+
+        if (lastAiMessage) {
+            try {
+                // Try to parse the last AI message content as JSON
+                const content = JSON.parse(lastAiMessage.content);
+
+                // Check for probing question
+                if (content.probe_me_question && !probingActive) {
+                    // Student got correct answer, start probing
+                    setProbingActive(true);
+                    setCurrentProbingQuestion(content.probe_me_question);
+                    setProbingSessionUuid(content.probing_session_uuid);
+                    
+                    // Add probing question to chat
+                    const probingMessage: ChatMessage = {
+                        id: Date.now() + 1,
+                        sender: 'ai',
+                        content: `🎉 Excellent! You got the correct answer!\n\nNow, let's make sure you really understand this concept.`,
+                        messageType: 'text',
+                        timestamp: new Date().toISOString(),
+                        showProbingQuestion: true,
+                        probingQuestion: content.probe_me_question
+                    };
+                    
+                    setChatHistories(prev => ({
+                        ...prev,
+                        [currentQuestionId]: [...(prev[currentQuestionId] || []), probingMessage]
+                    }));
+                }
+
+                // Check for understanding certification
+                if (content.understanding_certification && content.understanding_certification.certified) {
+                    setProbingActive(false);
+                    setShowCertification(true);
+                    setCertificationData(content.understanding_certification);
+                    
+                    // Mark question as truly completed
+                    setCompletedQuestionIds(prev => ({
+                        ...prev,
+                        [currentQuestionId]: true
+                    }));
+                }
+
+            } catch (error) {
+                console.error('Error parsing AI message content:', error);
+            }
+        }
+    }, [chatHistories, currentQuestionId, probingActive]);
+
+    // Handlers for probing response and certification
+    const handleProbingResponse = (response: string) => {
+        // Send probing response with session UUID
+        processUserResponse(response, 'text', undefined, probingSessionUuid);
+    };
+
+    const handleCertificationComplete = () => {
+        setShowCertification(false);
+        setCertificationData(null);
+        setProbingSessionUuid(null);
+    };
+
     return (
         <div className={`w-full h-full ${className}`}>
             {/* Add the custom styles */}
@@ -1983,6 +2061,7 @@ export default function LearnerQuizView({
                             showPreparingReport={showPreparingReport}
                             isChatHistoryLoaded={isChatHistoryLoaded}
                             isTestMode={isTestMode}
+
                             taskType='quiz'
                             currentQuestionConfig={validQuestions[currentQuestionIndex]?.config}
                             isSubmitting={isSubmitting}
@@ -2128,6 +2207,24 @@ export default function LearnerQuizView({
                         </button>
                     </div>
                 </div>
+            )}
+
+            {/* Probing Question Component */}
+            {probingActive && currentProbingQuestion && (
+                <ProbingQuestion
+                    question={currentProbingQuestion.question}
+                    questionType={currentProbingQuestion.question_type}
+                    onResponse={handleProbingResponse}
+                    isLoading={isAiResponding}
+                />
+            )}
+
+            {/* Understanding Certification Component */}
+            {showCertification && certificationData && (
+                <UnderstandingCertification
+                    certification={certificationData}
+                    onComplete={handleCertificationComplete}
+                />
             )}
         </div>
     );

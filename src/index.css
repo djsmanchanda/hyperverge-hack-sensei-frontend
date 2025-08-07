@@ -143,4 +143,40 @@
     ::selection {
         @apply bg-primary/10;
     }
+
+    /* Add to your CSS */
+    .probing-question {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 16px;
+        margin: 8px 0;
+    }
+
+    .certification {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 16px;
+        margin: 8px 0;
+        animation: celebration 0.6s ease-in-out;
+    }
+
+    @keyframes celebration {
+        0% { transform: scale(0.8); opacity: 0; }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    .understanding-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: #10b981;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
 }
