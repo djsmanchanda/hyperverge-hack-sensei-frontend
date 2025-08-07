@@ -140,9 +140,9 @@ const Scorecard = forwardRef<ScorecardHandle, ScorecardProps>(({
         const newCriterion: CriterionData = {
             name: '',
             description: '',
-            maxScore: 5,
+            maxScore: 10,
             minScore: 1,
-            passScore: 3
+            passScore: 6
         };
 
         const updatedCriteria = [...(criteria || []), newCriterion];

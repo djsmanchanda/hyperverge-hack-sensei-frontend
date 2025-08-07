@@ -918,6 +918,10 @@ export default function LearnerQuizView({
             }
 
             // Call the API with the appropriate request body for streaming response
+            try {
+                console.debug('[AI CHAT] Request body', requestBody);
+            } catch (_) {}
+
             fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/ai/chat`, {
                 method: 'POST',
                 headers: {
@@ -927,7 +931,16 @@ export default function LearnerQuizView({
             })
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Network response was not ok');
+                        // Attempt to read error payload for debugging
+                        return response.text().then(text => {
+                            try {
+                                const json = JSON.parse(text);
+                                console.error('[AI CHAT] Non-OK response', response.status, json);
+                            } catch {
+                                console.error('[AI CHAT] Non-OK response', response.status, text);
+                            }
+                            throw new Error(`AI chat request failed with status ${response.status}`);
+                        });
                     }
 
                     // Get the response reader for streaming for both exam and quiz
