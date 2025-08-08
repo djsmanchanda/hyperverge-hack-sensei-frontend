@@ -627,7 +627,7 @@ export default function LearnerQuizView({
             }
         ];
 
-        const isComplete = currentQuestion?.config?.responseType === 'exam' ? true : !userIsSolved && aiIsolved;
+        const isComplete = currentQuestion?.config?.responseType === 'exam' ? true : (!userIsSolved && aiIsSolved);
 
         const requestBody = {
             user_id: parseInt(userId),
@@ -1638,6 +1638,7 @@ export default function LearnerQuizView({
     const [probingSessionUuid, setProbingSessionUuid] = useState<string | null>(null);
     const [showCertification, setShowCertification] = useState(false);
     const [certificationData, setCertificationData] = useState<any>(null);
+    const [hasTestProbingResponse, setHasTestProbingResponse] = useState(false);
 
     // In your streaming response handler, add:
     useEffect(() => {
@@ -2214,7 +2215,10 @@ export default function LearnerQuizView({
                 <ProbingQuestion
                     question={currentProbingQuestion.question}
                     questionType={currentProbingQuestion.question_type}
-                    onResponse={handleProbingResponse}
+                    onResponse={(resp: string) => {
+                        setHasTestProbingResponse(true);
+                        handleProbingResponse(resp);
+                    }}
                     isLoading={isAiResponding}
                 />
             )}
@@ -2225,6 +2229,73 @@ export default function LearnerQuizView({
                     certification={certificationData}
                     onComplete={handleCertificationComplete}
                 />
+            )}
+
+            {/* Test Probing Feature - Add this temporarily */}
+            {!isTestMode && !viewOnly && (
+                <div className="fixed bottom-4 right-4 space-y-2 z-50">
+                    <div className="bg-white rounded-lg shadow-lg p-3 space-y-2 border">
+                        <div className="text-xs font-semibold text-gray-700 text-center">Probe Me Test</div>
+
+                        <button
+                            onClick={() => {
+                                console.log("🧠 Testing Probing Question");
+                                setProbingActive(true);
+                                setHasTestProbingResponse(false);
+                                setCurrentProbingQuestion({
+                                    question: "Excellent! You got the correct answer. Now, explain how your solution works step by step and why each step is necessary for solving this problem.",
+                                    question_type: "explanation",
+                                    expected_concepts: ["Problem solving", "Step-by-step reasoning", "Algorithm understanding"],
+                                });
+                            }}
+                            className="bg-purple-600 text-white px-3 py-2 rounded text-xs w-full hover:bg-purple-700 transition-colors"
+                        >
+                            🧠 Test Probing
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                if (!hasTestProbingResponse) {
+                                    alert("Please submit a probing response first.");
+                                    return;
+                                }
+                                console.log("🏆 Testing Certification");
+                                setProbingActive(false);
+                                setShowCertification(true);
+                                setCertificationData({
+                                    certified: true,
+                                    certification_message:
+                                        "Outstanding work! You've demonstrated exceptional understanding of this concept through your clear explanation.",
+                                    mastery_level: "advanced",
+                                    concepts_mastered: [
+                                        "Problem Solving",
+                                        "Critical Thinking",
+                                        "Clear Communication",
+                                        "Conceptual Understanding",
+                                    ],
+                                });
+                            }}
+                            className="bg-green-600 text-white px-3 py-2 rounded text-xs w-full hover:bg-green-700 transition-colors"
+                        >
+                            🏆 Test Certification
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                console.log("🔄 Resetting states");
+                                setProbingActive(false);
+                                setShowCertification(false);
+                                setCertificationData(null);
+                                setCurrentProbingQuestion(null);
+                                setProbingSessionUuid(null);
+                                setHasTestProbingResponse(false);
+                            }}
+                            className="bg-gray-500 text-white px-3 py-2 rounded text-xs w-full hover:bg-gray-600 transition-colors"
+                        >
+                            🔄 Reset
+                        </button>
+                    </div>
+                </div>
             )}
         </div>
     );
