@@ -31,26 +31,27 @@ async function uploadFile(file: File) {
     let presigned_url = '';
 
     try {
-        // First, get a presigned URL for the file
-        const presignedUrlResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/file/presigned-url/create`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                content_type: file.type
-            })
-        });
+        const isLocal = (process.env.NEXT_PUBLIC_ENV || '').toLowerCase() === 'local';
+        if (!isLocal) {
+            const presignedUrlResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/file/presigned-url/create`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    content_type: file.type
+                })
+            });
 
-        if (!presignedUrlResponse.ok) {
-            throw new Error('Failed to get presigned URL');
+            if (presignedUrlResponse.ok) {
+                const presignedData = await presignedUrlResponse.json();
+                presigned_url = presignedData.presigned_url;
+            } else if (presignedUrlResponse.status !== 501) {
+                console.warn('Failed to get presigned URL (non-501). Status:', presignedUrlResponse.status);
+            }
         }
-
-        const presignedData = await presignedUrlResponse.json();
-
-        presigned_url = presignedData.presigned_url;
     } catch (error) {
-        console.error("Error getting presigned URL for file:", error);
+        console.warn("Presigned URL attempt failed, will use local upload:", error);
     }
 
     if (!presigned_url) {

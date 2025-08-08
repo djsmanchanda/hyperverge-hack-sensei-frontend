@@ -825,26 +825,28 @@ export default function LearnerQuizView({
                 let file_uuid = '';
 
                 try {
-                    // First, get a presigned URL for the audio file
-                    const presignedUrlResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/file/presigned-url/create`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            content_type: "audio/wav"
-                        })
-                    });
-
-                    if (!presignedUrlResponse.ok) {
-                        throw new Error('Failed to get presigned URL');
+                    // Skip presigned URL if running locally (NEXT_PUBLIC_ENV=local) to avoid 50s delay/501 loop
+                    const isLocal = (process.env.NEXT_PUBLIC_ENV || '').toLowerCase() === 'local';
+                    if (!isLocal) {
+                        const presignedUrlResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/file/presigned-url/create`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                content_type: 'audio/wav'
+                            })
+                        });
+                        if (presignedUrlResponse.ok) {
+                            const presignedData = await presignedUrlResponse.json();
+                            presigned_url = presignedData.presigned_url;
+                            file_uuid = presignedData.file_uuid;
+                        } else if (presignedUrlResponse.status !== 501) {
+                            console.warn('Non-501 failure getting presigned URL, falling back to local upload. Status:', presignedUrlResponse.status);
+                        }
                     }
-
-                    const presignedData = await presignedUrlResponse.json();
-                    presigned_url = presignedData.presigned_url;
-                    file_uuid = presignedData.file_uuid;
                 } catch (error) {
-                    console.error("Error getting presigned URL for audio:", error);
+                    console.warn('Presigned URL attempt failed, will fall back to local upload:', error);
                 }
 
                 // Convert base64 audio data to a Blob

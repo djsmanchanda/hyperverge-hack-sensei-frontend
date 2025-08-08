@@ -214,7 +214,11 @@ export const AudioInputComponent: React.FC<AudioInputComponentProps> = ({
                             <button
                                 onClick={startRecording}
                                 disabled={isSubmitting}
-                                className="flex items-center space-x-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                                className={`flex items-center space-x-2 px-6 py-3 rounded-lg transition-colors disabled:cursor-not-allowed ${
+                                    isSubmitting
+                                        ? 'bg-gray-600 text-white'
+                                        : 'bg-red-600 text-white hover:bg-red-700'
+                                }`}
                             >
                                 <Mic className="h-5 w-5" />
                                 <span>Start Recording</span>
@@ -241,7 +245,7 @@ export const AudioInputComponent: React.FC<AudioInputComponentProps> = ({
                             <button
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={isSubmitting || isRecording}
-                                className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                                className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <Upload className="h-4 w-4" />
                                 <span>Upload Audio</span>
@@ -274,7 +278,12 @@ export const AudioInputComponent: React.FC<AudioInputComponentProps> = ({
                         <div className="flex items-center space-x-4 mb-4">
                             <button
                                 onClick={isPlaying ? pauseAudio : playAudio}
-                                className="flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
+                                disabled={isSubmitting}
+                                className={`flex items-center justify-center w-12 h-12 rounded-full transition-colors disabled:cursor-not-allowed ${
+                                    isSubmitting
+                                        ? 'bg-gray-600 text-white'
+                                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                                }`}
                             >
                                 {isPlaying ? (
                                     <Pause className="h-6 w-6" />
@@ -302,14 +311,18 @@ export const AudioInputComponent: React.FC<AudioInputComponentProps> = ({
                             <button
                                 onClick={handleReset}
                                 disabled={isSubmitting}
-                                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Record Again
                             </button>
                             <button
                                 onClick={handleSubmit}
                                 disabled={isSubmitting}
-                                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                                className={`flex-1 px-4 py-2 rounded-lg transition-colors disabled:cursor-not-allowed ${
+                                    isSubmitting
+                                        ? 'bg-gray-600 text-white'
+                                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                                }`}
                             >
                                 {isSubmitting ? 'Submitting...' : 'Submit'}
                             </button>
@@ -322,7 +335,10 @@ export const AudioInputComponent: React.FC<AudioInputComponentProps> = ({
                     <div className="flex flex-col items-center space-y-2">
                         <button
                             onClick={handleDeleteClick}
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                            disabled={isSubmitting}
+                            className={`px-4 py-2 rounded-lg transition-colors disabled:cursor-not-allowed ${
+                                isSubmitting ? 'bg-gray-600 text-white' : 'bg-red-600 text-white hover:bg-red-700'
+                            }`}
                         >
                             <Trash2 className="h-5 w-5 mr-2 inline-block" />
                             Delete Recording
